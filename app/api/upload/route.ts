@@ -14,6 +14,29 @@ function slugify(name: string) {
     .slice(0, 40);
 }
 
+// Right after `create_dataset_table` creates a new table, PostgREST
+// (Supabase's REST layer) doesn't know about it yet — its schema cache
+// only refreshes after the pg_notify('pgrst', 'reload schema') call the
+// function fires, which is asynchronous. An insert that races ahead of
+// that reload fails with "Could not find the table ... in the schema
+// cache" even though the table genuinely exists. Retrying with a short
+// backoff gives the cache time to catch up instead of failing outright.
+async function insertWithSchemaCacheRetry(
+  tableName: string,
+  rows: Record<string, string>[],
+  maxAttempts = 5
+) {
+  let lastError: any = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const { error } = await supabaseAdmin.from(tableName).insert(rows);
+    if (!error) return;
+    lastError = error;
+    if (!error.message?.includes("schema cache")) throw new Error(`Row insert failed: ${error.message}`);
+    await new Promise((r) => setTimeout(r, 300 * (attempt + 1))); // 300ms, 600ms, 900ms...
+  }
+  throw new Error(`Row insert failed after retries: ${lastError?.message}`);
+}
+
 // Everything funnels through this one endpoint: CSV -> a queryable
 // Supabase table (SQLAgent/StatsAgent territory). PDF/DOCX/TXT -> chunked
 // + embedded into document_chunks (DocAgent territory). This is the
@@ -48,10 +71,13 @@ export async function POST(req: NextRequest) {
           return row;
         });
 
-      // batch insert, 500 rows at a time
+      // batch insert, 500 rows at a time. The first batch uses retry logic
+      // since it's the one most likely to race the schema-cache reload
+      // right after table creation; subsequent batches hit an already-warm
+      // cache so they go through the retry wrapper too, cheaply (it just
+      // succeeds on the first attempt).
       for (let i = 0; i < rows.length; i += 500) {
-        const { error: insertErr } = await supabaseAdmin.from(tableName).insert(rows.slice(i, i + 500));
-        if (insertErr) throw new Error(`Row insert failed: ${insertErr.message}`);
+        await insertWithSchemaCacheRetry(tableName, rows.slice(i, i + 500));
       }
 
       await supabaseAdmin.from("datasets").insert({
