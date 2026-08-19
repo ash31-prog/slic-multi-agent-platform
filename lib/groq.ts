@@ -9,4 +9,4 @@ export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "placeholder-
 
 // One model constant so it's easy to swap later (e.g. to a bigger
 // Llama checkpoint or a different Groq-hosted model).
-export const MODEL = "llama-3.3-70b-versatile";
+export const MODEL = "openai/gpt-oss-120b";
