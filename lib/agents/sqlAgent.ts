@@ -33,7 +33,11 @@ async function generateSql(schemaDescription: string, question: string, priorErr
     temperature: 0,
     messages,
   });
-  return (genSql.choices[0].message.content ?? "").trim();
+  const raw = (genSql.choices[0].message.content ?? "").trim();
+  return raw
+   .replace(/^```sql\s*|^```\s*|```$/gim, "")
+   .trim()
+   .replace(/;+\s*$/, "");
 }
 
 export async function runSQLAgent(question: string) {
