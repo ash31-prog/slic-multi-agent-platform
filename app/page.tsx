@@ -24,9 +24,6 @@ export default function Home() {
           <h1 className="font-display text-sm font-medium tracking-wide">SLIC</h1>
           <span className="font-mono text-[11px] text-muted">multi-agent data intelligence</span>
         </div>
-        <span className="font-mono text-[11px] uppercase tracking-widest text-muted">
-          Case #{sessionId || "——————"}
-        </span>
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[minmax(340px,420px)_1fr]">
