@@ -1,12 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Runs a SELECT-only query through the execute_readonly_sql() Postgres
-// function defined in supabase/schema.sql. Any non-SELECT or multi
-// statement query is rejected at the DB layer, not just here.
 export async function runReadonlySQL(query: string) {
-  const { data, error } = await supabaseAdmin.rpc("execute_readonly_sql", {
-    query,
-  });
+  const { data, error } = await supabaseAdmin.rpc("execute_readonly_sql", { query });
   if (error) throw new Error(`SQL error: ${error.message}`);
   return data;
 }
@@ -17,4 +12,21 @@ export async function listDatasets() {
     .select("name, table_name, columns, row_count");
   if (error) throw new Error(error.message);
   return data;
+}
+
+// Includes real sample rows per table so the LLM can tell numeric columns
+// apart from categorical/text ones (column names alone aren't enough —
+// this is what was causing it to try averaging a label column).
+export async function describeSchemaWithSamples(datasets: { table_name: string; name: string; columns: string[] }[]) {
+  const parts = await Promise.all(
+    datasets.map(async (d) => {
+      let sampleLine = "";
+      try {
+        const sample = await runReadonlySQL(`select * from ${d.table_name} limit 3`);
+        if (Array.isArray(sample) && sample.length) sampleLine = `\n  sample rows: ${JSON.stringify(sample)}`;
+      } catch {}
+      return `table "${d.table_name}" (${d.name}) columns: ${JSON.stringify(d.columns)}${sampleLine}`;
+    })
+  );
+  return parts.join("\n");
 }
