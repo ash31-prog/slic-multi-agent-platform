@@ -27,9 +27,11 @@ export async function POST(req: NextRequest) {
       step: "Classifying intent",
       input: question,
     });
-    const { agents, reasoning } = await routeQuery(question);
+    const { agents: routedAgents, reasoning } = await routeQuery(question);
+    const agents = routedAgents.includes("viz") && !routedAgents.some((a) => a === "sql" || a === "stats")
+     ? [...routedAgents, "sql"]
+     : routedAgents;
     await updateTrace(routerTrace!.id, { output: `→ ${agents.join(", ")} · ${reasoning}`, status: "done" });
-
     // 2. Run each chosen specialist agent, logging a trace per step
     const results: Record<string, any> = {};
 
