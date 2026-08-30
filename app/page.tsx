@@ -29,11 +29,11 @@ export default function Home() {
         </span>
       </header>
 
-      <div className="grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-[minmax(340px,420px)_1fr]">
-        <section className="border-b border-line md:border-b-0 md:border-r">
-          <ChatPanel />
-        </section>
-        <section className="hidden md:block">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[minmax(340px,420px)_1fr]">
+       <section className="min-h-0 border-b border-line md:border-b-0 md:border-r">
+        <ChatPanel />
+       </section>
+       <section className="hidden min-h-0 md:block">
           <EvidenceBoard />
         </section>
       </div>
