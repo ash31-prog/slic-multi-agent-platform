@@ -34,12 +34,22 @@ export default function ChatPanel() {
     setThinking(true);
     try {
       const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, sessionId }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ question, sessionId }),
+});
+const text = await res.text();
+let json: any;
+try {
+  json = JSON.parse(text);
+} catch {
+  throw new Error(
+    res.status === 504 || res.status === 500
+      ? "The request took too long or the server crashed. Try a simpler question, or try again."
+      : `Unexpected response (${res.status}): ${text.slice(0, 150)}`
+  );
+}
+if (!res.ok) throw new Error(json.error);
       addMessage({
         role: "assistant",
         content: json.answer,

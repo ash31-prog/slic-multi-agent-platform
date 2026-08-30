@@ -9,7 +9,9 @@ export async function runReadonlySQL(query: string) {
 export async function listDatasets() {
   const { data, error } = await supabaseAdmin
     .from("datasets")
-    .select("name, table_name, columns, row_count");
+    .select("name, table_name, columns, row_count")
+    .order("created_at", { ascending: false })
+    .limit(5);
   if (error) throw new Error(error.message);
   return data;
 }
